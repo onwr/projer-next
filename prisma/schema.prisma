@@ -1,0 +1,332 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  password         String
+  firstName        String
+  lastName         String
+  userType         UserType @default(USER)
+  emailVerified    Boolean  @default(false)
+  storeName        String?
+  storeDescription String?  @db.Text
+  phone            String?
+  profileImage     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  products     Product[]
+  balance      Balance?
+  withdrawals  Withdrawal[]
+  bankAccounts BankAccount[]
+  orders       Order[]
+
+  // Relations for support system
+  supportTickets  SupportTicket[]
+  supportMessages SupportMessage[]
+
+  // Relations for favorites
+  favorites UserFavorite[]
+  
+  // Relations for activity logs
+  activityLogs ActivityLog[]
+
+  @@index([email])
+  @@index([userType])
+}
+
+enum UserType {
+  USER
+  STORE
+  ADMIN
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  title       String
+  slug        String  @unique
+  description String  @db.Text
+  category    String
+  subcategory String?
+  price       Decimal @db.Decimal(10, 2)
+  isFree      Boolean @default(false)
+  license     String
+  tags        String  @db.Text
+  features    String  @db.Text
+  geometry    String
+  polygons    Int     @default(0)
+  vertices    Int     @default(0)
+  gameReady   Boolean @default(false)
+  aiGenerated Boolean @default(false)
+
+  coverImage   String
+  mediaImages  String  @db.Text
+  productFiles String  @db.Text
+  model3dFile  String? @db.Text
+
+  status    ProductStatus @default(PENDING)
+  views     Int           @default(0)
+  likes     Int           @default(0)
+  downloads Int           @default(0)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+  favorites UserFavorite[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([category])
+  @@index([slug])
+}
+
+enum ProductStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DRAFT
+}
+
+model Balance {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  activeBalance    Decimal @default(0) @db.Decimal(10, 2)
+  pendingBalance   Decimal @default(0) @db.Decimal(10, 2)
+  totalEarnings    Decimal @default(0) @db.Decimal(10, 2)
+  totalWithdrawals Decimal @default(0) @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Withdrawal {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  amount        Decimal          @db.Decimal(10, 2)
+  status        WithdrawalStatus @default(PENDING)
+  bankAccountId String
+  bankAccount   BankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([bankAccountId])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model BankAccount {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accountName String
+  bankName    String
+  iban        String
+
+  withdrawals Withdrawal[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Order {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  amount Decimal     @db.Decimal(10, 2)
+  status OrderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  category  String
+  priority  String   @default("Orta")
+  status    String   @default("açık")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  sender    String // 'user' | 'support'
+  message   String        @db.Text
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId])
+}
+
+model UserFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  image     String?
+  parentId  String?
+  parent    Category? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Category[] @relation("CategoryTree")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+  @@index([slug])
+}
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      ActivityAction
+  entityType  String?      // User, Product, Order, Withdrawal, etc.
+  entityId    String?
+  description String       @db.Text
+  ipAddress   String
+  country     String?
+  countryCode String?
+  city        String?
+  region      String?
+  regionCode  String?
+  timezone    String?
+  isp         String?
+  userAgent   String?      @db.Text
+  browser     String?
+  browserVersion String?
+  os          String?
+  osVersion   String?
+  device      String?      // Desktop, Mobile, Tablet
+  referer     String?      @db.Text
+  url         String?      @db.Text
+  metadata    String?      @db.Text // JSON
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([ipAddress])
+  @@index([country])
+  @@index([entityType])
+  @@index([entityId])
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGOUT
+  REGISTER
+  PRODUCT_CREATE
+  PRODUCT_UPDATE
+  PRODUCT_DELETE
+  PRODUCT_VIEW
+  ORDER_CREATE
+  ORDER_COMPLETE
+  ORDER_CANCEL
+  WITHDRAWAL_CREATE
+  WITHDRAWAL_APPROVE
+  WITHDRAWAL_REJECT
+  PAYMENT_CALLBACK
+  ADMIN_APPROVE_PRODUCT
+  ADMIN_REJECT_PRODUCT
+  ADMIN_UPDATE_USER
+  ADMIN_UPDATE_BALANCE
+  ADMIN_DELETE_USER
+  ADMIN_APPROVE_WITHDRAWAL
+  ADMIN_REJECT_WITHDRAWAL
+  ADMIN_CREATE_CATEGORY
+  ADMIN_UPDATE_CATEGORY
+  ADMIN_DELETE_CATEGORY
+  USER_FAVORITE_ADD
+  USER_FAVORITE_REMOVE
+  PRODUCT_DOWNLOAD
+  BANK_ACCOUNT_ADD
+  BANK_ACCOUNT_DELETE
+  OTHER
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  content   String   @db.Text
+  type      PageType
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([type])
+  @@index([isActive])
+}
+
+enum PageType {
+  FAQ
+  CONTACT
+  TERMS
+  PRIVACY
+  LICENSE
+}
