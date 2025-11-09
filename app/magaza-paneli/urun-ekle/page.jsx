@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { Suspense, useMemo, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -514,7 +514,14 @@ const Page = () => {
   }, [productId]);
 
   return (
-    <div className='min-h-screen bg-white'>
+    <Suspense
+      fallback={
+        <div className='flex min-h-screen items-center justify-center bg-white text-slate-500'>
+          Yükleniyor...
+        </div>
+      }
+    >
+      <div className='min-h-screen bg-white'>
       {/* Kurumsal Başlık Bölümü */}
       <div className='sticky top-0 z-10 border-b border-slate-200 bg-white shadow-sm'>
         <div className='mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8'>
@@ -1057,7 +1064,8 @@ const Page = () => {
         currentStep={step}
         totalSteps={6}
       />
-    </div>
+      </div>
+    </Suspense>
   );
 };
 
