@@ -135,7 +135,7 @@ const CustomActionBar = ({ onCancel, onPublish, isLoading, currentStep, totalSte
 };
 
 // --- Ana Bileşen ---
-const Page = () => {
+const ProductCreateContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const productId = searchParams?.get('productId') || '';
@@ -514,14 +514,7 @@ const Page = () => {
   }, [productId]);
 
   return (
-    <Suspense
-      fallback={
-        <div className='flex min-h-screen items-center justify-center bg-white text-slate-500'>
-          Yükleniyor...
-        </div>
-      }
-    >
-      <div className='min-h-screen bg-white'>
+    <div className='min-h-screen bg-white'>
       {/* Kurumsal Başlık Bölümü */}
       <div className='sticky top-0 z-10 border-b border-slate-200 bg-white shadow-sm'>
         <div className='mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8'>
@@ -1065,8 +1058,19 @@ const Page = () => {
         totalSteps={6}
       />
       </div>
-    </Suspense>
   );
 };
+
+const Page = () => (
+  <Suspense
+    fallback={
+      <div className='flex min-h-screen items-center justify-center bg-white text-slate-500'>
+        Yükleniyor...
+      </div>
+    }
+  >
+    <ProductCreateContent />
+  </Suspense>
+);
 
 export default Page;
