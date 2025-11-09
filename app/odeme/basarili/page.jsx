@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
@@ -8,7 +8,7 @@ import { CheckCircle2, Download, ShoppingBag, Home, Sparkles } from 'lucide-reac
 import { clearCart } from '@/store/cartSlice';
 import Link from 'next/link';
 
-const PaymentSuccess = () => {
+const PaymentSuccessContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const dispatch = useDispatch();
@@ -163,5 +163,17 @@ const PaymentSuccess = () => {
     </div>
   );
 };
+
+const PaymentSuccess = () => (
+  <Suspense
+    fallback={
+      <div className='flex min-h-screen items-center justify-center bg-white text-slate-500'>
+        Yükleniyor...
+      </div>
+    }
+  >
+    <PaymentSuccessContent />
+  </Suspense>
+);
 
 export default PaymentSuccess;
