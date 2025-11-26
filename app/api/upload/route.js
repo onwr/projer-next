@@ -21,8 +21,10 @@ const toSlug = (str = '') =>
 export async function POST(request) {
   try {
     const form = await request.formData();
-    const file = form.get('file');
-    const useBunnyCDN = form.get('useBunnyCDN') === 'true';
+    // Hem 'file' hem de 'image' parametrelerini destekle
+    const file = form.get('file') || form.get('image');
+    const useLocal = form.get('useLocal') === 'true'; // Artık local için özel parametre
+    const useBunnyCDN = form.get('useBunnyCDN') !== 'false'; // Default true
 
     if (!file || typeof file === 'string') {
       return NextResponse.json({ ok: false, error: 'Dosya bulunamadı' }, { status: 200 });
@@ -44,15 +46,26 @@ export async function POST(request) {
     const ext = originalName.includes('.') ? `.${originalName.split('.').pop()}` : '';
     const base = toSlug(originalName.replace(ext, '')) || 'dosya';
 
+    // 3D model dosya uzantılarını kontrol et
+    const modelExtensions = ['.fbx', '.glb', '.gltf', '.obj', '.hdr', '.stl', '.ply', '.3ds'];
+    const isModelFile = modelExtensions.some((modelExt) => ext.toLowerCase() === modelExt);
+    
+    // Görsel dosya uzantılarını kontrol et
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp'];
+    const isImageFile = imageExtensions.some((imgExt) => ext.toLowerCase() === imgExt);
+
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const ts = now.getTime();
 
-    // BunnyCDN kullanılıyorsa
-    if (useBunnyCDN) {
+    // Dosya tipine göre klasör seç
+    const folder = isModelFile ? 'models' : isImageFile ? 'images' : 'files';
+
+    // Default olarak CDN kullan (useLocal true değilse)
+    if (!useLocal && useBunnyCDN) {
       try {
-        const fileName = `images/${yyyy}-${mm}/${base}-${ts}${ext}`;
+        const fileName = `${folder}/${yyyy}-${mm}/${base}-${ts}${ext}`;
         const result = await uploadImageToBunnyCDN(file, fileName);
         
         return NextResponse.json(
@@ -68,11 +81,18 @@ export async function POST(request) {
         );
       } catch (bunnyError) {
         console.error('BunnyCDN upload error:', bunnyError);
+        console.error('Error details:', {
+          message: bunnyError.message,
+          stack: bunnyError.stack,
+          fileName: originalName,
+          fileSize: size,
+          fileType: file.type,
+        });
         // Hata durumunda normal upload'a düş
       }
     }
 
-    // Normal upload (local)
+    // Normal upload (local) - sadece useLocal true ise veya CDN hatası varsa
     const relDir = path.posix.join('uploads', `${yyyy}-${mm}`);
     const outDir = path.join(process.cwd(), 'public', relDir);
     await ensureDir(outDir);

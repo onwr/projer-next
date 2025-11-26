@@ -63,6 +63,8 @@ const AdminStoresPage = () => {
     totalProducts: 0,
     totalRevenue: 0,
     activeStores: 0,
+    totalActiveBalance: 0,
+    totalEarnings: 0,
   });
 
   useEffect(() => {
@@ -82,20 +84,10 @@ const AdminStoresPage = () => {
 
   const loadStats = async () => {
     try {
-      const params = new URLSearchParams({
-        page: '1',
-        pageSize: '1',
-        userType: 'STORE',
-      });
-      const res = await fetch(`/api/admin/users?${params.toString()}`);
+      const res = await fetch('/api/admin/stores/stats');
       const data = await res.json();
-      if (data.ok) {
-        setStats({
-          totalStores: data.total,
-          totalProducts: 0,
-          totalRevenue: 0,
-          activeStores: data.total,
-        });
+      if (data.ok && data.stats) {
+        setStats(data.stats);
       }
     } catch (error) {
       console.error('Load stats error:', error);
@@ -386,11 +378,11 @@ const AdminStoresPage = () => {
         <div className='rounded-2xl bg-white p-6 shadow-lg'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-sm text-gray-600'>Toplam Gelir</p>
+              <p className='text-sm text-gray-600'>Aktif Bakiyeler</p>
               <p className='mt-2 text-2xl font-bold text-gray-900'>
-                ${(stats.totalRevenue / exchangeRate).toFixed(2)}
+                ${((stats.totalActiveBalance || 0) / exchangeRate).toFixed(2)}
               </p>
-              <p className='text-xs text-gray-500'>₺{stats.totalRevenue.toFixed(2)}</p>
+              <p className='text-xs text-gray-500'>₺{(stats.totalActiveBalance || 0).toFixed(2)}</p>
             </div>
             <div className='rounded-full bg-yellow-50 p-3 text-yellow-600'>
               <DollarSign size={24} />
@@ -400,8 +392,11 @@ const AdminStoresPage = () => {
         <div className='rounded-2xl bg-white p-6 shadow-lg'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-sm text-gray-600'>Aktif Mağaza</p>
-              <p className='mt-2 text-2xl font-bold text-gray-900'>{stats.activeStores}</p>
+              <p className='text-sm text-gray-600'>Toplam Kazançlar</p>
+              <p className='mt-2 text-2xl font-bold text-gray-900'>
+                ${((stats.totalEarnings || 0) / exchangeRate).toFixed(2)}
+              </p>
+              <p className='text-xs text-gray-500'>₺{(stats.totalEarnings || 0).toFixed(2)}</p>
             </div>
             <div className='rounded-full bg-purple-50 p-3 text-purple-600'>
               <TrendingUp size={24} />
@@ -743,16 +738,6 @@ const AdminStoresPage = () => {
                       </div>
                       <ShoppingBag size={24} className='text-green-500' />
                     </div>
-                    {storeDetails.orderStats && (
-                      <div className='mt-2 flex gap-2 text-xs'>
-                        <span className='text-green-600'>
-                          {storeDetails.orderStats.completed || 0} Tamamlandı
-                        </span>
-                        <span className='text-red-600'>
-                          {storeDetails.orderStats.cancelled || 0} İptal Edildi
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <div className='rounded-xl border border-gray-200 p-4'>

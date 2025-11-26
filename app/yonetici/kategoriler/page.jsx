@@ -102,6 +102,7 @@ const AdminCategoriesPage = () => {
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
+      uploadFormData.append('useBunnyCDN', 'true'); // CDN yükleme aktif
 
       const res = await fetch('/api/upload', {
         method: 'POST',

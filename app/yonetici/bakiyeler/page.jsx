@@ -39,6 +39,8 @@ const AdminBalancesPage = () => {
     totalEarningsUSD: 0,
     totalWithdrawals: 0,
     totalWithdrawalsUSD: 0,
+    platformCommission: 0,
+    platformCommissionUSD: 0,
   });
 
   useEffect(() => {
@@ -90,6 +92,9 @@ const AdminBalancesPage = () => {
           totalWithdrawals: acc.totalWithdrawals + b.totalWithdrawals,
         }), { activeBalance: 0, totalEarnings: 0, totalWithdrawals: 0 });
 
+        // Platform komisyonu: Toplam kazançların %10'u (platform komisyon oranı)
+        const platformCommission = totals.totalEarnings * 0.1;
+
         setStats({
           totalActiveBalance: totals.activeBalance,
           totalActiveBalanceUSD: totals.activeBalance / exchangeRate,
@@ -97,6 +102,8 @@ const AdminBalancesPage = () => {
           totalEarningsUSD: totals.totalEarnings / exchangeRate,
           totalWithdrawals: totals.totalWithdrawals,
           totalWithdrawalsUSD: totals.totalWithdrawals / exchangeRate,
+          platformCommission,
+          platformCommissionUSD: platformCommission / exchangeRate,
         });
       }
     } catch (error) {
@@ -187,7 +194,7 @@ const AdminBalancesPage = () => {
     const csvHeaders = [
       'Mağaza Adı', 'Email', 'Telefon', 'Aktif Bakiye (TL)', 'Aktif Bakiye (USD)', 
       'Bekleyen Bakiye (TL)', 'Bekleyen Bakiye (USD)', 'Toplam Kazanç (TL)', 'Toplam Kazanç (USD)',
-      'Toplam Çekim (TL)', 'Toplam Çekim (USD)', 'Sipariş Sayısı', 'Satış Sayısı', 
+      'Toplam Çekim (TL)', 'Toplam Çekim (USD)', 'Sipariş Sayısı', 
       'Son Aktivite Tarihi', 'Oluşturulma Tarihi', 'Güncelleme Tarihi'
     ];
     
@@ -204,7 +211,6 @@ const AdminBalancesPage = () => {
       b.totalWithdrawals || 0,
       b.totalWithdrawalsUSD || 0,
       b.orderCount || 0,
-      b.salesCount || 0,
       b.lastActivityDate ? new Date(b.lastActivityDate).toLocaleString('tr-TR') : '',
       new Date(b.createdAt).toLocaleString('tr-TR'),
       new Date(b.updatedAt).toLocaleString('tr-TR'),
@@ -289,6 +295,20 @@ const AdminBalancesPage = () => {
           </div>
         </div>
 
+        <div className='rounded-2xl bg-white p-6 shadow-lg'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-sm font-medium text-gray-600'>Platform Komisyon Kazançları</p>
+              <p className='mt-2 text-3xl font-bold text-gray-900'>
+                ${stats.platformCommissionUSD.toFixed(2)} USD
+              </p>
+              <p className='text-xs text-gray-500'>₺{stats.platformCommission.toFixed(2)} TRY</p>
+            </div>
+            <div className='rounded-full bg-orange-100 p-3'>
+              <BarChart3 size={24} className='text-orange-600' />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Gelişmiş Filtreler */}
@@ -481,10 +501,6 @@ const AdminBalancesPage = () => {
                             <Package size={14} />
                             <span>{balance.orderCount || 0} sipariş</span>
                           </div>
-                          <div className='flex items-center space-x-1'>
-                            <TrendingUp size={14} />
-                            <span>{balance.salesCount || 0} satış</span>
-                          </div>
                         </div>
                       </td>
                       <td className='px-6 py-4 text-sm text-gray-600'>
@@ -649,26 +665,16 @@ const AdminBalancesPage = () => {
               </div>
 
               {/* İstatistikler */}
-              <div className='grid gap-4 md:grid-cols-4 rounded-xl bg-gray-50 p-4'>
+              <div className='grid gap-4 md:grid-cols-2 rounded-xl bg-gray-50 p-4'>
                 <div className='text-center'>
                   <p className='text-2xl font-bold text-gray-900'>{detailData.statistics.totalOrders}</p>
                   <p className='text-sm text-gray-600'>Toplam Sipariş</p>
-                </div>
-                <div className='text-center'>
-                  <p className='text-2xl font-bold text-green-600'>{detailData.statistics.salesCount}</p>
-                  <p className='text-sm text-gray-600'>Satış</p>
                 </div>
                 <div className='text-center'>
                   <p className='text-2xl font-bold text-blue-600'>
                     ₺{detailData.statistics.totalRevenue.toFixed(2)}
                   </p>
                   <p className='text-sm text-gray-600'>Toplam Gelir</p>
-                </div>
-                <div className='text-center'>
-                  <p className='text-2xl font-bold text-purple-600'>
-                    ₺{detailData.statistics.averageOrder.toFixed(2)}
-                  </p>
-                  <p className='text-sm text-gray-600'>Ortalama Sipariş</p>
                 </div>
               </div>
 

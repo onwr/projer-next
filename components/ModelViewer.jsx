@@ -67,8 +67,11 @@ const GLTFModel = ({ url, position, scale, onModelLoaded }) => {
         }
       }
       
+      // onModelLoaded callback'ini asenkron çağır (React hatasını önlemek için)
       if (onModelLoaded) {
-        onModelLoaded({ center, size, maxDim: maxDim > 0 ? maxDim : 2 });
+        setTimeout(() => {
+          onModelLoaded({ center, size, maxDim: maxDim > 0 ? maxDim : 2 });
+        }, 0);
       }
     }
   }, [gltf, onModelLoaded]);
@@ -156,7 +159,7 @@ const Model = ({
   );
 };
 
-const ModelViewer = ({ modelUrl, className = '', autoRotate = true, showControls = false }) => {
+const ModelViewer = ({ modelUrl, className = '', autoRotate = false, showControls = false }) => {
   const [isAutoRotate, setIsAutoRotate] = useState(autoRotate);
   const [cameraPosition, setCameraPosition] = useState([2, 2, 2]);
   const controlsRef = useRef(null);
@@ -167,10 +170,7 @@ const ModelViewer = ({ modelUrl, className = '', autoRotate = true, showControls
     const cameraDist = Math.min(targetDistance, 2.5); // Maksimum 2.5 birim uzaklık (çok yakın)
     setCameraPosition([cameraDist * 0.6, cameraDist * 0.6, cameraDist * 0.6]);
     
-    // Auto rotate'u aktif et
-    setIsAutoRotate(true);
-    
-    // Controls'u resetle ve kapalı tut
+    // Controls'u resetle
     if (controlsRef.current) {
       controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
@@ -208,9 +208,9 @@ const ModelViewer = ({ modelUrl, className = '', autoRotate = true, showControls
             )}
             <OrbitControls
               ref={controlsRef}
-              enablePan={false}
-              enableZoom={false}
-              enableRotate={false}
+              enablePan={true}
+              enableZoom={true}
+              enableRotate={true}
               autoRotate={isAutoRotate}
               autoRotateSpeed={1.5}
               maxDistance={8}

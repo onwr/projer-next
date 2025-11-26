@@ -16,18 +16,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Orijinal kodda buradaki ActionBar import'u çakışmaya neden oluyordu.
-// Yeni versiyonda, güncel ActionBar'ı bu dosya içinde tanımlayarak import çakışmasını önlüyoruz.
-// import ActionBar from '@/components/ui/ActionBar'; // BU SATIRI SİLMENİZ GEREKİR (veya yerine koyduğum kodu kullanın)
-
 import Wizard from '@/components/ui/Wizard';
 import Dropzone from '@/components/ui/Dropzone';
 import TagInput from '@/components/ui/TagInput';
 import SelectGroup from '@/components/ui/SelectGroup';
 import PriceSection from '@/components/ui/PriceSection';
 import PreviewCard from '@/components/ui/PreviewCard';
-
-// --- Sabit Veriler ve Animasyon Değişkenleri (Aynı Kaldı) ---
+import ModelViewer from '@/components/ModelViewer';
 
 const licenses = [
   'Royalty free, no AI',
@@ -83,8 +78,7 @@ const errorVariants = {
   exit: { opacity: 0, height: 0, transition: { duration: 0.3 } },
 };
 
-// --- Framer Motion'lı Yeni ActionBar Bileşeni (Çakışmayı önlemek için buraya taşıdık) ---
-const CustomActionBar = ({ onCancel, onPublish, isLoading, currentStep, totalSteps }) => {
+const CustomActionBar = ({ onCancel, onPublish, onNext, isLoading, currentStep, totalSteps }) => {
   const isFinalStep = currentStep === totalSteps;
 
   const getButtonClass = (isActive = true) =>
@@ -111,6 +105,15 @@ const CustomActionBar = ({ onCancel, onPublish, isLoading, currentStep, totalSte
             İptal Et
           </button>
           <div className='flex space-x-3'>
+            {!isFinalStep && (
+              <button
+                type='button'
+                onClick={onNext}
+                className='px-6 py-2.5 rounded-xl font-semibold text-sm bg-[#2196f3] text-white shadow-md transition-all duration-300 hover:brightness-110'
+              >
+                İleri
+              </button>
+            )}
             <button
               type={isFinalStep ? 'submit' : 'button'}
               onClick={isFinalStep ? onPublish : () => {}} // Son adımda form submit edilir
@@ -134,7 +137,6 @@ const CustomActionBar = ({ onCancel, onPublish, isLoading, currentStep, totalSte
   );
 };
 
-// --- Ana Bileşen ---
 const ProductCreateContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -151,7 +153,8 @@ const ProductCreateContent = () => {
     license: 'Royalty free, no AI',
     tags: [],
     features: [],
-    geometry: 'HardSurface',
+    geometry: '',
+    graphic: '',
     polygons: 0,
     vertices: 0,
     gameReady: false,
@@ -263,13 +266,34 @@ const ProductCreateContent = () => {
   const uploadToApi = async (file, isPublic = false) => {
     const body = new FormData();
     body.set('file', file);
-    const res = await fetch(`/api/upload?public=${isPublic ? 'true' : 'false'}`, {
-      method: 'POST',
-      body,
-    });
-    const data = await res.json();
-    if (!res.ok || !data?.url) throw new Error(data?.error || 'Yükleme başarısız');
-    return data;
+    body.set('useBunnyCDN', 'true'); // CDN yükleme aktif
+    try {
+      const res = await fetch(`/api/upload?public=${isPublic ? 'true' : 'false'}`, {
+        method: 'POST',
+        body,
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        console.error('Upload API error:', {
+          status: res.status,
+          statusText: res.statusText,
+          error: data?.error,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+        });
+        throw new Error(data?.error || 'Yükleme başarısız');
+      }
+      return data;
+    } catch (error) {
+      console.error('Upload fetch error:', {
+        message: error.message,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+      });
+      throw error;
+    }
   };
 
   const handleCoverSelect = async (files) => {
@@ -318,9 +342,20 @@ const ProductCreateContent = () => {
           size: res.size || f.size,
           type: res.type || f.type || 'model/fbx',
         });
+      } else {
+        throw new Error('Upload response does not contain URL');
       }
-    } catch (_) {
-      setErrors(['3D model yüklenemedi. Lütfen tekrar deneyin.']);
+    } catch (error) {
+      console.error('3D Model upload error:', {
+        message: error.message,
+        fileName: f.name,
+        fileSize: f.size,
+        fileType: f.type,
+        error: error,
+      });
+      setErrors([
+        `3D model yüklenemedi: ${error.message || 'Bilinmeyen hata'}. Lütfen tekrar deneyin.`,
+      ]);
     } finally {
       setIsModel3dUploading(false);
     }
@@ -353,7 +388,8 @@ const ProductCreateContent = () => {
         license: formData.license,
         tags: Array.isArray(formData.tags) ? formData.tags : [],
         features: formData.features,
-        geometry: formData.geometry,
+        geometry: formData.geometry || '',
+        graphic: formData.graphic || '',
         polygons: Number(formData.polygons) || 0,
         vertices: Number(formData.vertices) || 0,
         gameReady: !!formData.gameReady,
@@ -493,6 +529,8 @@ const ProductCreateContent = () => {
           isFree: !!p.isFree,
           license: p.license || prev.license,
           tags: parsedTags,
+          geometry: p.geometry || '',
+          graphic: p.graphic || '',
         }));
         setCoverUrl(p.coverImage || '');
         setGalleryUrls(parsedMedia.map((m) => m.url).filter(Boolean));
@@ -561,6 +599,7 @@ const ProductCreateContent = () => {
               if (valid) setStep((s) => Math.min(6, s + 1));
             }}
             variant='compactBlue'
+            hideButtons={true}
           >
             {/* Animasyonlu Hata Mesajları */}
             <AnimatePresence>
@@ -644,75 +683,78 @@ const ProductCreateContent = () => {
                 {step === 2 && (
                   <div className='space-y-6 rounded-2xl bg-white p-8 shadow-lg ring-1 ring-slate-100'>
                     <h2 className='text-xl font-bold text-slate-800'>Medya Yükleme</h2>
-                    <div className='space-y-3'>
-                      <div className='text-sm font-medium text-slate-700'>
-                        Kapak Görseli (Zorunlu)
+                    <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                      {/* Sol Kolon: Kapak Görseli */}
+                      <div className='space-y-3'>
+                        <div className='text-sm font-medium text-slate-700'>
+                          Kapak Görseli (Zorunlu)
+                        </div>
+                        <Dropzone
+                          accept='image/*'
+                          multiple={false}
+                          onFiles={handleCoverSelect}
+                          variant='primary'
+                        />
+                        <div className='mt-3'>
+                          {isCoverUploading && (
+                            <span className='text-xs text-slate-500'>Kapak yükleniyor…</span>
+                          )}
+                          {!isCoverUploading && coverUrl && (
+                            <div className='overflow-hidden rounded-xl ring-1 ring-slate-200'>
+                              <img
+                                src={coverUrl}
+                                alt='Kapak'
+                                className='h-40 w-full object-cover'
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <Dropzone
-                        accept='image/*'
-                        multiple={false}
-                        onFiles={handleCoverSelect}
-                        variant='primary'
-                      />
-                      <div className='mt-3'>
-                        {isCoverUploading && (
-                          <span className='text-xs text-slate-500'>Kapak yükleniyor…</span>
+                      {/* Sağ Kolon: Galeri Görselleri */}
+                      <div className='space-y-3'>
+                        <div className='text-sm font-medium text-slate-700'>
+                          Galeri Görselleri (Min. 1)
+                        </div>
+                        <Dropzone
+                          accept='image/*'
+                          multiple
+                          onFiles={handleGallerySelect}
+                          variant='primary'
+                        />
+                        {isGalleryUploading && (
+                          <div className='pt-1 text-xs text-slate-500'>Galeri yükleniyor…</div>
                         )}
-                        {!isCoverUploading && coverUrl && (
-                          <div className='overflow-hidden rounded-xl ring-1 ring-slate-200'>
-                            <img
-                              src={coverUrl}
-                              alt='Kapak'
-                              className='aspect-video w-full object-cover'
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className='h-px w-full bg-slate-200' />
-                    <div className='space-y-3'>
-                      <div className='text-sm font-medium text-slate-700'>
-                        Galeri Görselleri (Min. 1)
-                      </div>
-                      <Dropzone
-                        accept='image/*'
-                        multiple
-                        onFiles={handleGallerySelect}
-                        variant='primary'
-                      />
-                      {isGalleryUploading && (
-                        <div className='pt-1 text-xs text-slate-500'>Galeri yükleniyor…</div>
-                      )}
-                      {galleryUrls.length > 0 && (
-                        <>
-                          <div className='flex items-center justify-between pt-1 text-xs text-slate-600'>
-                            <span className='font-semibold'>{galleryUrls.length} Görsel Hazır</span>
-                          </div>
-                          <div className='mt-3 grid grid-cols-2 gap-3 md:grid-cols-3'>
-                            {galleryUrls.map((u, i) => (
-                              <div
-                                key={`${u}-${i}`}
-                                className='group relative overflow-hidden rounded-xl ring-1 ring-slate-200'
-                              >
-                                <img
-                                  src={u}
-                                  alt={`Galeri ${i + 1}`}
-                                  className='aspect-video w-full object-cover'
-                                />
-                                <button
-                                  type='button'
-                                  onClick={() =>
-                                    setGalleryUrls((p) => p.filter((_, idx) => idx !== i))
-                                  }
-                                  className='absolute top-2 right-2 hidden rounded-md bg-white/90 px-2 py-1 text-xs text-slate-700 shadow group-hover:block'
+                        {galleryUrls.length > 0 && (
+                          <>
+                            <div className='flex items-center justify-between pt-1 text-xs text-slate-600'>
+                              <span className='font-semibold'>{galleryUrls.length} Görsel Hazır</span>
+                            </div>
+                            <div className='mt-3 grid grid-cols-2 gap-3'>
+                              {galleryUrls.map((u, i) => (
+                                <div
+                                  key={`${u}-${i}`}
+                                  className='group relative overflow-hidden rounded-xl ring-1 ring-slate-200'
                                 >
-                                  Kaldır
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                                  <img
+                                    src={u}
+                                    alt={`Galeri ${i + 1}`}
+                                    className='aspect-video w-full object-cover'
+                                  />
+                                  <button
+                                    type='button'
+                                    onClick={() =>
+                                      setGalleryUrls((p) => p.filter((_, idx) => idx !== i))
+                                    }
+                                    className='absolute top-2 right-2 hidden rounded-md bg-white/90 px-2 py-1 text-xs text-slate-700 shadow group-hover:block'
+                                  >
+                                    Kaldır
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -724,13 +766,75 @@ const ProductCreateContent = () => {
                       Ürünün indirme linki olarak kullanılacak dosyaları (zip, rar, blend, fbx, vb.)
                       yükleyin.
                     </div>
-                    <Dropzone
-                      accept='*/*'
-                      multiple
-                      heightClass='h-52'
-                      onFiles={(files) => setProductFiles((p) => [...p, ...files])}
-                      variant='primary'
-                    />
+                    {(existingProductFiles.length > 0 || productFiles.length > 0) ? (
+                      <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                        <div>
+                          <Dropzone
+                            accept='*/*'
+                            multiple
+                            heightClass='h-52'
+                            onFiles={(files) => setProductFiles((p) => [...p, ...files])}
+                            variant='primary'
+                          />
+                        </div>
+                        <div className='space-y-2'>
+                          <div className='mb-2 text-sm font-medium text-slate-700'>Yüklenen Dosyalar</div>
+                          {existingProductFiles.map((f, i) => (
+                            <div
+                              key={`existing-${i}`}
+                              className='flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm ring-1 ring-slate-200'
+                            >
+                              <div className='flex min-w-0 items-center gap-3 text-slate-700'>
+                                <Package size={18} className='shrink-0 text-gray-500' />
+                                <span className='truncate font-medium'>
+                                  {f.fileName || f.name || 'dosya'}
+                                </span>
+                                <span className='shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700'>
+                                  {formatBytes(f?.size)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {productFiles.map((f, i) => (
+                            <div
+                              key={`${f.name}-${i}`}
+                              className='flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm ring-1 ring-slate-200 transition hover:shadow-md'
+                            >
+                              <div className='flex min-w-0 items-center gap-3 text-slate-700'>
+                                <Package size={18} className='shrink-0 text-gray-500' />
+                                <span className='truncate font-medium'>{f.name}</span>
+                                <span className='shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700'>
+                                  {formatBytes(f?.size)}
+                                </span>
+                              </div>
+                              <button
+                                type='button'
+                                onClick={() =>
+                                  setProductFiles((prev) => prev.filter((_, idx) => idx !== i))
+                                }
+                                className='text-slate-500 transition hover:text-red-600'
+                              >
+                                Kaldır
+                              </button>
+                            </div>
+                          ))}
+                          <div className='mt-4 flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 ring-1 ring-slate-200'>
+                            <span>
+                              Toplam: {existingProductFiles.length + productFiles.length} Dosya
+                            </span>
+                            <span>{formatBytes(totalFilesCombinedSize)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Dropzone
+                        accept='*/*'
+                        multiple
+                        heightClass='h-52'
+                        onFiles={(files) => setProductFiles((p) => [...p, ...files])}
+                        variant='primary'
+                      />
+                    )}
                     <div className='h-px w-full bg-slate-200' />
                     <div className='space-y-3'>
                       <div className='text-sm font-medium text-slate-700'>
@@ -740,93 +844,69 @@ const ProductCreateContent = () => {
                         Ürün detay sayfasında 3D önizleme için kullanılacak dosyayı yükleyin. Desteklenen
                         formatlar: FBX, GLB, GLTF, OBJ, HDR, STL, PLY, 3DS
                       </div>
-                      <Dropzone
-                        accept='.fbx,.glb,.gltf,.obj,.hdr,.stl,.ply,.3ds,model/fbx,model/gltf-binary,model/gltf+json,model/obj,model/stl,model/ply,model/3ds,image/vnd.radiance,image/hdr'
-                        multiple={false}
-                        heightClass='h-40'
-                        onFiles={handleModel3dSelect}
-                        variant='primary'
-                      />
-                      {isModel3dUploading && (
-                        <div className='pt-1 text-xs text-slate-500'>3D model yükleniyor…</div>
-                      )}
-                      {(model3dUrl || existingModel3dFile) && (
-                        <div className='mt-3 rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-200'>
-                          <div className='flex items-center justify-between'>
-                            <div className='flex items-center gap-2'>
-                              <Package size={16} className='text-emerald-600' />
-                              <span className='text-sm font-medium text-emerald-900'>
-                                {model3dFile?.fileName ||
-                                  (typeof existingModel3dFile === 'object'
-                                    ? existingModel3dFile?.fileName
-                                    : '3D Model')}{' '}
-                                yüklendi
-                              </span>
+                      {(model3dUrl || existingModel3dFile) ? (
+                        <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
+                          <div>
+                            <Dropzone
+                              accept='.fbx,.glb,.gltf,.obj,.hdr,.stl,.ply,.3ds,model/fbx,model/gltf-binary,model/gltf+json,model/obj,model/stl,model/ply,model/3ds,image/vnd.radiance,image/hdr'
+                              multiple={false}
+                              heightClass='h-40'
+                              onFiles={handleModel3dSelect}
+                              variant='primary'
+                            />
+                            {isModel3dUploading && (
+                              <div className='mt-2 text-xs text-slate-500'>3D model yükleniyor…</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className='mb-2 text-sm font-medium text-slate-700'>3D Model Önizlemesi</div>
+                            <div className='rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200'>
+                              <ModelViewer
+                                modelUrl={model3dUrl || (typeof existingModel3dFile === 'object' ? existingModel3dFile?.url : null)}
+                                className='aspect-square'
+                                autoRotate={false}
+                                showControls={true}
+                              />
+                              <div className='mt-3 flex items-center justify-between rounded-xl bg-emerald-50 p-3 ring-1 ring-emerald-200'>
+                                <div className='flex items-center gap-2'>
+                                  <Package size={16} className='text-emerald-600' />
+                                  <span className='text-sm font-medium text-emerald-900'>
+                                    {model3dFile?.fileName ||
+                                      (typeof existingModel3dFile === 'object'
+                                        ? existingModel3dFile?.fileName
+                                        : '3D Model')}
+                                  </span>
+                                </div>
+                                <button
+                                  type='button'
+                                  onClick={() => {
+                                    setModel3dUrl('');
+                                    setModel3dFile(null);
+                                    setExistingModel3dFile(null);
+                                  }}
+                                  className='text-xs text-emerald-700 hover:text-emerald-900'
+                                >
+                                  Kaldır
+                                </button>
+                              </div>
                             </div>
-                            <button
-                              type='button'
-                              onClick={() => {
-                                setModel3dUrl('');
-                                setModel3dFile(null);
-                                setExistingModel3dFile(null);
-                              }}
-                              className='text-xs text-emerald-700 hover:text-emerald-900'
-                            >
-                              Kaldır
-                            </button>
                           </div>
                         </div>
+                      ) : (
+                        <>
+                          <Dropzone
+                            accept='.fbx,.glb,.gltf,.obj,.hdr,.stl,.ply,.3ds,model/fbx,model/gltf-binary,model/gltf+json,model/obj,model/stl,model/ply,model/3ds,image/vnd.radiance,image/hdr'
+                            multiple={false}
+                            heightClass='h-40'
+                            onFiles={handleModel3dSelect}
+                            variant='primary'
+                          />
+                          {isModel3dUploading && (
+                            <div className='pt-1 text-xs text-slate-500'>3D model yükleniyor…</div>
+                          )}
+                        </>
                       )}
                     </div>
-                    {(existingProductFiles.length > 0 || productFiles.length > 0) && (
-                      <div className='space-y-2 pt-2'>
-                        {existingProductFiles.map((f, i) => (
-                          <div
-                            key={`existing-${i}`}
-                            className='flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm ring-1 ring-slate-200'
-                          >
-                            <div className='flex min-w-0 items-center gap-3 text-slate-700'>
-                              <Package size={18} className='shrink-0 text-gray-500' />
-                              <span className='truncate font-medium'>
-                                {f.fileName || f.name || 'dosya'}
-                              </span>
-                              <span className='shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700'>
-                                {formatBytes(f?.size)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {productFiles.map((f, i) => (
-                          <div
-                            key={`${f.name}-${i}`}
-                            className='flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3 text-sm ring-1 ring-slate-200 transition hover:shadow-md'
-                          >
-                            <div className='flex min-w-0 items-center gap-3 text-slate-700'>
-                              <Package size={18} className='shrink-0 text-gray-500' />
-                              <span className='truncate font-medium'>{f.name}</span>
-                              <span className='shrink-0 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700'>
-                                {formatBytes(f?.size)}
-                              </span>
-                            </div>
-                            <button
-                              type='button'
-                              onClick={() =>
-                                setProductFiles((prev) => prev.filter((_, idx) => idx !== i))
-                              }
-                              className='text-slate-500 transition hover:text-red-600'
-                            >
-                              Kaldır
-                            </button>
-                          </div>
-                        ))}
-                        <div className='mt-4 flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 ring-1 ring-slate-200'>
-                          <span>
-                            Toplam: {existingProductFiles.length + productFiles.length} Dosya
-                          </span>
-                          <span>{formatBytes(totalFilesCombinedSize)}</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -872,6 +952,38 @@ const ProductCreateContent = () => {
                         Ürününüzün aramalarda bulunmasını kolaylaştırmak için anahtar kelimeler
                         ekleyin.
                       </p>
+                    </div>
+                    <div className='grid gap-4 md:grid-cols-2'>
+                      <div className='space-y-2'>
+                        <label htmlFor='geometry' className='text-sm font-medium text-slate-700'>
+                          Geometri
+                        </label>
+                        <input
+                          id='geometry'
+                          type='text'
+                          value={formData.geometry}
+                          onChange={(e) =>
+                            setFormData((p) => ({ ...p, geometry: e.target.value }))
+                          }
+                          className='w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 transition focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none'
+                          placeholder='Geometri bilgisi girin...'
+                        />
+                      </div>
+                      <div className='space-y-2'>
+                        <label htmlFor='graphic' className='text-sm font-medium text-slate-700'>
+                          Grafik
+                        </label>
+                        <input
+                          id='graphic'
+                          type='text'
+                          value={formData.graphic}
+                          onChange={(e) =>
+                            setFormData((p) => ({ ...p, graphic: e.target.value }))
+                          }
+                          className='w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder-slate-400 transition focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none'
+                          placeholder='Grafik bilgisi girin...'
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1053,6 +1165,10 @@ const ProductCreateContent = () => {
       <CustomActionBar
         onCancel={() => router.push('/magaza-paneli')}
         onPublish={handleSubmit}
+        onNext={() => {
+          const { valid } = validateStep(step);
+          if (valid) setStep((s) => Math.min(6, s + 1));
+        }}
         isLoading={isSubmitting}
         currentStep={step}
         totalSteps={6}

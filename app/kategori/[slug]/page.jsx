@@ -202,13 +202,6 @@ const CategoryDetailPage = () => {
             </Link>
             <div className='hidden h-8 w-px bg-white/30 md:block' />
             <div className='flex items-center space-x-4'>
-              <div className='flex h-16 w-16 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm'>
-                {category.image ? (
-                  <img src={category.image} alt={category.name} className='h-10 w-10 object-contain' />
-                ) : (
-                  <div className='h-10 w-10 rounded-full bg-white/30' />
-                )}
-              </div>
               <div>
                 <h1 className='text-3xl font-bold text-white lg:text-4xl'>{category.name}</h1>
                 <p className='text-lg text-white/80'>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3, Package, DollarSign, ShoppingBag, MessageSquare, Check, Plus, XCircle, CreditCard, AlertCircle } from 'lucide-react';
+import { BarChart3, Package, DollarSign, ShoppingBag, MessageSquare, Check, Plus, XCircle, CreditCard, AlertCircle, BookOpen, Heart, User, Settings } from 'lucide-react';
 import ProductsToolbar from '@/components/ui/ProductsToolbar';
 
 const StorePanelPage = () => {
@@ -415,6 +415,27 @@ const StorePanelPage = () => {
                   <MessageSquare size={20} />
                   <span className='font-medium'>Destek</span>
                 </button>
+                <Link
+                  href='/kullanici-paneli/satin-almalar'
+                  className='flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-left transition-colors duration-200 text-gray-600 hover:bg-gray-50'
+                >
+                  <BookOpen size={20} />
+                  <span className='font-medium'>Kütüphanem</span>
+                </Link>
+                <Link
+                  href='/kullanici-paneli'
+                  className='flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-left transition-colors duration-200 text-gray-600 hover:bg-gray-50'
+                >
+                  <Heart size={20} />
+                  <span className='font-medium'>Favorilerim</span>
+                </Link>
+                <Link
+                  href='/kullanici-paneli'
+                  className='flex w-full items-center space-x-3 rounded-xl px-4 py-3 text-left transition-colors duration-200 text-gray-600 hover:bg-gray-50'
+                >
+                  <Settings size={20} />
+                  <span className='font-medium'>Profil Ayarları</span>
+                </Link>
               </nav>
             </div>
           </div>
@@ -428,7 +449,7 @@ const StorePanelPage = () => {
                   </div>
                 ) : dashboardStats ? (
                   <>
-                    <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-4'>
+                    <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
                       <div className='rounded-2xl bg-white p-6 shadow-lg'>
                         <p className='text-sm text-gray-600'>Toplam Ürün</p>
                         <p className='text-2xl font-bold text-gray-900'>
@@ -447,39 +468,6 @@ const StorePanelPage = () => {
                           ₺{dashboardStats.totalRevenue.toFixed(2)}
                         </p>
                       </div>
-                      <div className='rounded-2xl bg-white p-6 shadow-lg'>
-                        <p className='text-sm text-gray-600'>Bekleyen Sipariş</p>
-                        <p className='text-2xl font-bold text-gray-900'>
-                          {dashboardStats.pendingOrders}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-4'>
-                      <div className='rounded-2xl bg-white p-6 shadow-lg'>
-                        <p className='text-sm text-gray-600'>Toplam Görüntülenme</p>
-                        <p className='text-2xl font-bold text-gray-900'>
-                          {dashboardStats.totalViews.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className='rounded-2xl bg-white p-6 shadow-lg'>
-                        <p className='text-sm text-gray-600'>Toplam İndirme</p>
-                        <p className='text-2xl font-bold text-gray-900'>
-                          {dashboardStats.totalDownloads.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className='rounded-2xl bg-white p-6 shadow-lg'>
-                        <p className='text-sm text-gray-600'>Aylık Gelir</p>
-                        <p className='text-2xl font-bold text-gray-900'>
-                          ₺{dashboardStats.monthlyRevenue.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className='rounded-2xl bg-white p-6 shadow-lg'>
-                        <p className='text-sm text-gray-600'>Haftalık Gelir</p>
-                        <p className='text-2xl font-bold text-gray-900'>
-                          ₺{dashboardStats.weeklyRevenue.toFixed(2)}
-                        </p>
-                      </div>
                     </div>
 
                     <div className='rounded-2xl bg-white p-6 shadow-lg'>
@@ -494,7 +482,7 @@ const StorePanelPage = () => {
                               <div>
                                 <p className='font-semibold text-gray-900'>{o.product}</p>
                                 <p className='text-sm text-gray-600'>
-                                  {o.customer} • {o.email}
+                                  {o.customer}
                                 </p>
                               </div>
                               <div className='text-right'>
@@ -656,26 +644,17 @@ const StorePanelPage = () => {
                         <p className='text-2xl font-bold text-gray-900'>
                           ${typeof balance.activeBalanceUSD === 'number' ? balance.activeBalanceUSD.toFixed(2) : '0.00'}
                         </p>
-                        <p className='text-xs text-gray-500 mt-1'>
-                          ₺{typeof balance.activeBalance === 'number' ? balance.activeBalance.toFixed(2) : '0.00'}
-                        </p>
                       </div>
                       <div className='rounded-2xl bg-white p-6 shadow-lg'>
                         <p className='text-sm text-gray-600'>Bekleyen Çekimler</p>
                         <p className='text-2xl font-bold text-gray-900'>
                           ${typeof balance.pendingBalanceUSD === 'number' ? balance.pendingBalanceUSD.toFixed(2) : '0.00'}
                         </p>
-                        <p className='text-xs text-gray-500 mt-1'>
-                          ₺{typeof balance.pendingBalance === 'number' ? balance.pendingBalance.toFixed(2) : '0.00'}
-                        </p>
                       </div>
                       <div className='rounded-2xl bg-white p-6 shadow-lg'>
                         <p className='text-sm text-gray-600'>Toplam Kazanç</p>
                         <p className='text-2xl font-bold text-gray-900'>
                           ${typeof balance.totalEarningsUSD === 'number' ? balance.totalEarningsUSD.toFixed(2) : '0.00'}
-                        </p>
-                        <p className='text-xs text-gray-500 mt-1'>
-                          ₺{typeof balance.totalEarnings === 'number' ? balance.totalEarnings.toFixed(2) : '0.00'}
                         </p>
                       </div>
                     </div>
@@ -685,18 +664,12 @@ const StorePanelPage = () => {
                         <p className='text-2xl font-bold text-gray-900'>
                           ${typeof balance.totalWithdrawalsUSD === 'number' ? balance.totalWithdrawalsUSD.toFixed(2) : '0.00'}
                         </p>
-                        <p className='text-xs text-gray-500 mt-1'>
-                          ₺{typeof balance.totalWithdrawals === 'number' ? balance.totalWithdrawals.toFixed(2) : '0.00'}
-                        </p>
                       </div>
                       {dashboardStats && (
                         <div className='rounded-2xl bg-white p-6 shadow-lg'>
                           <p className='text-sm text-gray-600'>Aylık Gelir</p>
                           <p className='text-2xl font-bold text-gray-900'>
                             ${(dashboardStats.monthlyRevenue / (balance.exchangeRate || 35)).toFixed(2)}
-                          </p>
-                          <p className='text-xs text-gray-500 mt-1'>
-                            ₺{dashboardStats.monthlyRevenue.toFixed(2)}
                           </p>
                         </div>
                       )}
@@ -968,7 +941,7 @@ const StorePanelPage = () => {
                           <div>
                             <p className='font-semibold text-gray-900'>{o.product}</p>
                             <p className='text-sm text-gray-600'>
-                              {o.customer} • {o.email}
+                              {o.customer}
                             </p>
                             <p className='mt-1 text-xs text-gray-500'>{o.category}</p>
                           </div>

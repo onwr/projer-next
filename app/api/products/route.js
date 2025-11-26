@@ -16,7 +16,8 @@ export async function GET(request) {
     const page = Math.max(1, Number(searchParams.get('page') || '1'));
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get('pageSize') || '12')));
 
-    const where = {
+    // Base where clause (tag araması hariç)
+    const baseWhere = {
       status: 'APPROVED', // Sadece aktif ürünler gösterilsin
       ...(category && { category }),
       ...(subcategory && { subcategory }),
@@ -25,16 +26,71 @@ export async function GET(request) {
       ...(typeof isFree === 'string' && (isFree === 'true' || isFree === 'false')
         ? { isFree: isFree === 'true' }
         : {}),
-      ...(q
-        ? {
-            OR: [
-              { title: { contains: q } },
-              { description: { contains: q } },
-              { category: { contains: q } },
-              { subcategory: { contains: q } },
-            ],
+    };
+
+    // Tag araması için özel işlem
+    let allProducts = [];
+    let filteredProductIds = null;
+
+    if (q) {
+      // Önce tüm ürünleri çek (tag araması için)
+      allProducts = await prisma.product.findMany({
+        where: baseWhere,
+        select: {
+          id: true,
+          tags: true,
+        },
+      });
+
+      // Tag araması için filtrele
+      const searchLower = q.toLowerCase();
+      const matchingIds = allProducts
+        .filter((p) => {
+          const tags = safeParse(p.tags, []);
+          if (Array.isArray(tags)) {
+            return tags.some((tag) => String(tag).toLowerCase().includes(searchLower));
           }
-        : {}),
+          return false;
+        })
+        .map((p) => p.id);
+
+      // Diğer alanlarda arama yap
+      const textSearchWhere = {
+        ...baseWhere,
+        OR: [
+          { title: { contains: q } },
+          { description: { contains: q } },
+          { category: { contains: q } },
+          { subcategory: { contains: q } },
+        ],
+      };
+
+      const textMatchingProducts = await prisma.product.findMany({
+        where: textSearchWhere,
+        select: { id: true },
+      });
+
+      const textMatchingIds = textMatchingProducts.map((p) => p.id);
+
+      // Tag ve text araması sonuçlarını birleştir
+      filteredProductIds = [...new Set([...matchingIds, ...textMatchingIds])];
+    }
+
+    // Final where clause
+    const where = {
+      ...baseWhere,
+      ...(filteredProductIds !== null && filteredProductIds.length > 0
+        ? { id: { in: filteredProductIds } }
+        : q
+          ? {
+              OR: [
+                { title: { contains: q } },
+                { description: { contains: q } },
+                { category: { contains: q } },
+                { subcategory: { contains: q } },
+              ],
+            }
+          : {}),
     };
 
     let orderBy = { createdAt: 'desc' };

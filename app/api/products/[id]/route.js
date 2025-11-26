@@ -15,6 +15,7 @@ const pickUpdatable = (data = {}) => {
     tags,
     features,
     geometry,
+    graphic,
     polygons,
     vertices,
     gameReady,
@@ -36,6 +37,7 @@ const pickUpdatable = (data = {}) => {
     ...(Array.isArray(tags) && { tags }),
     ...(Array.isArray(features) && { features }),
     ...(geometry !== undefined && { geometry }),
+    ...(graphic !== undefined && { graphic }),
     ...(polygons !== undefined && { polygons: Number(polygons) || 0 }),
     ...(vertices !== undefined && { vertices: Number(vertices) || 0 }),
     ...(gameReady !== undefined && { gameReady: !!gameReady }),
@@ -73,6 +75,11 @@ export async function GET(request, ctx) {
             profileImage: true,
           },
         },
+        _count: {
+          select: {
+            orders: true,
+          },
+        },
       },
     });
     
@@ -90,6 +97,11 @@ export async function GET(request, ctx) {
               profileImage: true,
             },
           },
+          _count: {
+            select: {
+              orders: true,
+            },
+          },
         },
       });
     }
@@ -98,8 +110,8 @@ export async function GET(request, ctx) {
       return NextResponse.json({ ok: false, error: 'Not found' }, { status: 404 });
     }
     
-    // Eğer ürün pasif (DRAFT) ise, sadece sahibi ve admin görebilmeli
-    if (product.status === 'DRAFT') {
+    // Eğer ürün pasif (DRAFT, PENDING, REJECTED) ise, sadece sahibi ve admin görebilmeli
+    if (product.status !== 'APPROVED') {
       const session = await auth().catch(() => null);
       
       if (!session) {

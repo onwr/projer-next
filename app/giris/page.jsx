@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,6 +18,20 @@ const Login = () => {
   });
 
   const router = useRouter();
+  const { data: session, status } = useSession();
+
+  const getDashboardRoute = (userType) => {
+    if (userType === 'ADMIN') return '/yonetici';
+    if (userType === 'STORE') return '/magaza-paneli';
+    if (userType === 'USER') return '/kullanici-paneli';
+    return '/';
+  };
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      router.replace(getDashboardRoute(session.user.userType));
+    }
+  }, [status, session, router]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -47,9 +62,6 @@ const Login = () => {
 
       if (result?.error) {
         setError('Geçersiz email veya şifre');
-      } else if (result?.ok) {
-        router.push('/');
-        router.refresh();
       }
     } catch (error) {
       console.error('Login error:', error);

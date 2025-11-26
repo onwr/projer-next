@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export const Wizard = ({ steps = [], current = 1, onPrev, onNext, children, variant = 'dark' }) => {
+export const Wizard = ({ steps = [], current = 1, onPrev, onNext, children, variant = 'dark', hideButtons = false }) => {
   const isLight = variant === 'light';
   const isCompact = variant === 'compactBlue';
   const barClass = isCompact
@@ -17,7 +17,7 @@ export const Wizard = ({ steps = [], current = 1, onPrev, onNext, children, vari
       : 'rounded-2xl bg-zinc-900/60 p-4 ring-1 ring-white/10';
   return (
     <div className='space-y-6'>
-      <ol className={barClass}>
+      <ol className={`${barClass} sticky top-20 z-10 bg-white`}>
         {steps.map((label, idx) => {
           const stepNumber = idx + 1;
           const isActive = stepNumber === current;
@@ -86,32 +86,34 @@ export const Wizard = ({ steps = [], current = 1, onPrev, onNext, children, vari
 
       <div className={paneClass}>{children}</div>
 
-      <div className='flex items-center justify-between'>
-        <button
-          type='button'
-          onClick={onPrev}
-          className={
-            isCompact
-              ? 'rounded-xl px-4 py-2 text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50'
-              : isLight
+      {!hideButtons && (
+        <div className='flex items-center justify-between'>
+          <button
+            type='button'
+            onClick={onPrev}
+            className={
+              isCompact
                 ? 'rounded-xl px-4 py-2 text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50'
-                : 'rounded-xl px-4 py-2 text-zinc-300 ring-1 ring-white/15 transition hover:bg-white/5'
-          }
-        >
-          Geri
-        </button>
-        <button
-          type='button'
-          onClick={onNext}
-          className={
-            isCompact
-              ? 'rounded-xl bg-[#2196f3] px-5 py-2 text-white shadow-md transition hover:brightness-110'
-              : 'rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2 text-white shadow-md transition hover:brightness-110'
-          }
-        >
-          İleri
-        </button>
-      </div>
+                : isLight
+                  ? 'rounded-xl px-4 py-2 text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50'
+                  : 'rounded-xl px-4 py-2 text-zinc-300 ring-1 ring-white/15 transition hover:bg-white/5'
+            }
+          >
+            Geri
+          </button>
+          <button
+            type='button'
+            onClick={onNext}
+            className={
+              isCompact
+                ? 'rounded-xl bg-[#2196f3] px-5 py-2 text-white shadow-md transition hover:brightness-110'
+                : 'rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2 text-white shadow-md transition hover:brightness-110'
+            }
+          >
+            İleri
+          </button>
+        </div>
+      )}
     </div>
   );
 };

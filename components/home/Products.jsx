@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useDispatch } from 'react-redux';
 import { addToCart, openCart } from '@/store/cartSlice';
-import { Eye, ShoppingCart, X, ExternalLink, Download, User, Heart, Check, Image, Box } from 'lucide-react';
-import ModelViewer from '@/components/ModelViewer';
+import { Eye, ShoppingCart, X, ExternalLink, Download, User, Heart, Check } from 'lucide-react';
 
 const Products = () => {
   const dispatch = useDispatch();
@@ -22,9 +21,9 @@ const Products = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [favoritedProducts, setFavoritedProducts] = useState(new Set());
   const [purchasedProducts, setPurchasedProducts] = useState(new Set());
-  const [productViewMode, setProductViewMode] = useState({}); // productId -> 'model' | 'image'
 
   const openModal = (product) => {
+    if (!product) return;
     setSelectedProduct(product);
     setIsModalOpen(true);
   };
@@ -367,89 +366,15 @@ const Products = () => {
               onClick={() => openModal(product)}
               className='group relative cursor-pointer overflow-hidden rounded-2xl bg-white shadow-lg transition-all duration-300'
             >
-              {/* Product Image or 3D Model */}
+              {/* Product Image */}
               <div className='relative h-64 overflow-hidden bg-linear-to-br from-gray-100 to-gray-200'>
-                {(() => {
-                  // model3dFile'ı parse et
-                  let modelUrl = null;
-                  
-                  if (product.model3dFile) {
-                    if (typeof product.model3dFile === 'string') {
-                      try {
-                        const parsed = JSON.parse(product.model3dFile);
-                        modelUrl = parsed?.url || parsed;
-                      } catch {
-                        modelUrl = product.model3dFile;
-                      }
-                    } else if (typeof product.model3dFile === 'object') {
-                      modelUrl = product.model3dFile?.url || product.model3dFile;
-                    }
-                  }
-                  
-                  const hasModel = modelUrl && String(modelUrl).trim() !== '' && 
-                    (String(modelUrl).includes('.gltf') || String(modelUrl).includes('.glb') || 
-                     String(modelUrl).includes('.fbx') || String(modelUrl).includes('.obj'));
-                  
-                  // View mode: 'model' veya 'image' (default: hasModel varsa 'model', yoksa 'image')
-                  const viewMode = productViewMode[product.id] || (hasModel ? 'model' : 'image');
-                  const showModel = hasModel && viewMode === 'model';
-                  
-                  return (
-                    <>
-                      {showModel ? (
-                        <div className='h-full w-full relative'>
-                          <ModelViewer
-                            key={`model-viewer-${product.id}-${String(modelUrl).trim()}`}
-                            modelUrl={String(modelUrl).trim()}
-                            className='h-full'
-                            autoRotate={true}
-                            showControls={false}
-                          />
-                          {/* Switch to Image Button */}
-                          <motion.button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setProductViewMode(prev => ({ ...prev, [product.id]: 'image' }));
-                            }}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className='absolute top-3 left-3 z-10 flex items-center space-x-1 rounded-lg bg-white/90 backdrop-blur-sm px-3 py-2 text-xs font-medium text-gray-700 shadow-lg transition-all duration-200 hover:bg-white'
-                            title='Resme Geç'
-                          >
-                            <Image size={14} />
-                            <span>Resim</span>
-                          </motion.button>
-                        </div>
-                      ) : (
-                        <>
-                          <img
-                            src={product.coverImage || '/logo.svg'}
-                            alt={product.title}
-                            className='h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-110'
-                            onError={(e) => (e.currentTarget.src = '/logo.svg')}
-                          />
-                          <div className='absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent' />
-                          {/* Switch to 3D Model Button */}
-                          {hasModel && (
-                            <motion.button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setProductViewMode(prev => ({ ...prev, [product.id]: 'model' }));
-                              }}
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className='absolute top-3 left-3 z-10 flex items-center space-x-1 rounded-lg bg-white/90 backdrop-blur-sm px-3 py-2 text-xs font-medium text-gray-700 shadow-lg transition-all duration-200 hover:bg-white'
-                              title='3D Modele Geç'
-                            >
-                              <Box size={14} />
-                              <span>3D Model</span>
-                            </motion.button>
-                          )}
-                        </>
-                      )}
-                    </>
-                  );
-                })()}
+                <img
+                  src={product.coverImage || '/logo.svg'}
+                  alt={product.title}
+                  className='h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-110'
+                  onError={(e) => (e.currentTarget.src = '/logo.svg')}
+                />
+                <div className='absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent' />
 
                 {/* Favorite Button */}
                 <motion.button
@@ -472,7 +397,7 @@ const Products = () => {
                     initial={{ opacity: 0 }}
                     whileHover={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
-                    className='absolute inset-0 flex items-center justify-center bg-black/60'
+                    className='absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none'
                   >
                     {Number(product.price ?? 0) <= 0 ? (
                       <motion.button
@@ -485,6 +410,10 @@ const Products = () => {
                               method: 'POST',
                             });
                             const data = await res.json();
+                            if (res.status === 401) {
+                              alert('İndirmek için giriş yapınız');
+                              return;
+                            }
                             if (data.ok && data.files) {
                               // Dosyaları indir
                               data.files.forEach((file) => {
@@ -516,7 +445,7 @@ const Products = () => {
                             alert('İndirme işlemi başarısız');
                           }
                         }}
-                        className='flex items-center space-x-2 rounded-xl bg-linear-to-r from-emerald-600 to-emerald-700 px-6 py-3 text-white shadow-xl transition-all duration-300 hover:from-emerald-700 hover:to-emerald-800'
+                        className='flex items-center space-x-2 rounded-xl bg-linear-to-r from-emerald-600 to-emerald-700 px-6 py-3 text-white shadow-xl transition-all duration-300 hover:from-emerald-700 hover:to-emerald-800 pointer-events-auto'
                       >
                         <Download size={18} />
                         <span className='font-semibold'>Ücretsiz İndir</span>
@@ -535,7 +464,7 @@ const Products = () => {
                           dispatch(addToCart({ product: productForCart }));
                           dispatch(openCart());
                         }}
-                        className='flex items-center space-x-2 rounded-xl bg-linear-to-r from-blue-600 to-blue-700 px-6 py-3 text-white shadow-xl transition-all duration-300 hover:from-blue-700 hover:to-blue-800'
+                        className='flex items-center space-x-2 rounded-xl bg-linear-to-r from-blue-600 to-blue-700 px-6 py-3 text-white shadow-xl transition-all duration-300 hover:from-blue-700 hover:to-blue-800 pointer-events-auto'
                       >
                         <ShoppingCart size={18} />
                         <span className='font-semibold'>Satın Al</span>
@@ -548,7 +477,7 @@ const Products = () => {
                     initial={{ opacity: 0 }}
                     whileHover={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
-                    className='absolute inset-0 flex items-center justify-center bg-black/60'
+                    className='absolute inset-0 flex items-center justify-center bg-black/60 pointer-events-none'
                   >
                     <motion.div className='flex items-center space-x-2 rounded-xl bg-gray-500 px-6 py-3 text-white shadow-xl'>
                       <Check size={18} />
@@ -818,6 +747,10 @@ const Products = () => {
                               method: 'POST',
                             });
                             const data = await res.json();
+                            if (res.status === 401) {
+                              alert('İndirmek için giriş yapınız');
+                              return;
+                            }
                             if (data.ok && data.files) {
                               // Dosyaları indir
                               data.files.forEach((file) => {

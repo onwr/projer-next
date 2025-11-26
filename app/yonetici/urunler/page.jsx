@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Search, Eye, Trash2, Edit2, Power, Download, X, Check, Package, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
+import { Search, Eye, Trash2, Edit2, Power, Download, X, Check, Package, BarChart3, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { TagInput } from '@/components/ui/TagInput';
 
@@ -654,10 +654,6 @@ const AdminProductsPage = () => {
                           <div className='flex items-center space-x-1'>
                             <Download size={14} />
                             <span className='font-medium'>{product.downloads || 0}</span>
-                          </div>
-                          <div className='flex items-center space-x-1'>
-                            <TrendingUp size={14} />
-                            <span className='font-medium'>{product.likes || 0}</span>
                           </div>
                           <div className='flex items-center space-x-1'>
                             <Package size={14} />

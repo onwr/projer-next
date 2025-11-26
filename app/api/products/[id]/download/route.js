@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth.js';
 import { prisma } from '@/lib/prisma.js';
+import crypto from 'crypto';
 
 export async function POST(request, ctx) {
   try {
     const session = await auth();
     if (!session) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ ok: false, error: 'İndirmek için giriş yapınız' }, { status: 401 });
     }
 
     const { id } = await ctx.params;
@@ -82,11 +83,37 @@ export async function POST(request, ctx) {
 
     const productFiles = safeParse(product.productFiles || '[]');
 
+    // Her dosya için token oluştur
+    const secret = process.env.NEXTAUTH_SECRET || 'dev-secret-key-change-in-production';
+    const timestamp = Date.now();
+    const filesWithTokens = productFiles.map((file, index) => {
+      const hash = crypto
+        .createHmac('sha256', secret)
+        .update(`${session.user.id}:${product.id}:${index}:${timestamp}`)
+        .digest('hex');
+      
+      const tokenData = {
+        userId: session.user.id,
+        productId: product.id,
+        fileIndex: index,
+        timestamp,
+        hash,
+      };
+      
+      const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
+      
+      return {
+        ...file,
+        downloadToken: token,
+        downloadUrl: `/api/download/${token}`,
+      };
+    });
+
     return NextResponse.json({
       ok: true,
       productId: product.id,
       productTitle: product.title,
-      files: productFiles,
+      files: filesWithTokens,
     });
   } catch (error) {
     console.error('[/api/products/[id]/download] Error:', error);

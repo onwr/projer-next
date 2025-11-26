@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { auth } from '@/lib/auth';
 
 export async function middleware(request) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+  const session = await auth();
   const path = request.nextUrl.pathname;
 
   const isAuthRoute = path.startsWith('/giris') || path.startsWith('/kayit');
@@ -14,23 +14,29 @@ export async function middleware(request) {
     path.startsWith('/urun-ekle') ||
     path.startsWith('/urun-duzenle');
 
-  if (isAuthRoute && token) {
+  if (isAuthRoute && session) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
-  if (requiresAuth && !token) {
+  if (requiresAuth && !session) {
     return NextResponse.redirect(new URL('/giris', request.url));
   }
 
-  if (path.startsWith('/magaza-paneli') && token?.userType !== 'STORE') {
+  if (path.startsWith('/magaza-paneli') && session?.user?.userType !== 'STORE') {
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 
-  if (path.startsWith('/yonetici') && token?.userType !== 'ADMIN') {
+  if (path.startsWith('/yonetici') && session?.user?.userType !== 'ADMIN') {
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 
-  if (path.startsWith('/kullanici-paneli') && token?.userType !== 'USER') {
+  // Kütüphanem sayfası tüm kullanıcı tiplerine açık
+  if (path.startsWith('/kullanici-paneli/satin-almalar')) {
+    // Tüm kullanıcı tipleri erişebilir (USER, STORE, ADMIN)
+    return NextResponse.next();
+  }
+
+  if (path.startsWith('/kullanici-paneli') && session?.user?.userType !== 'USER') {
     return NextResponse.redirect(new URL('/unauthorized', request.url));
   }
 

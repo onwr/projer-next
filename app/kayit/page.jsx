@@ -54,6 +54,7 @@ const Register = () => {
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('useBunnyCDN', 'true'); // CDN yükleme aktif
 
     const response = await fetch('/api/upload?public=true', {
       method: 'POST',

@@ -47,7 +47,7 @@ const Categories = () => {
   }, []);
 
   return (
-    <section className='pt-20'>
+    <section className='py-20'>
       <div className='container mx-auto max-w-screen-2xl px-4'>
         <motion.div
           initial={{ opacity: 0, y: 30 }}

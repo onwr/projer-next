@@ -64,6 +64,7 @@ model Product {
   tags        String  @db.Text
   features    String  @db.Text
   geometry    String
+  graphic     String
   polygons    Int     @default(0)
   vertices    Int     @default(0)
   gameReady   Boolean @default(false)

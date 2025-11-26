@@ -24,17 +24,6 @@ export const ProductsToolbar = ({
           placeholder='Ürün ara...'
           className='w-64 rounded-xl border border-slate-200 bg-white px-4 py-2 text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-[#2196f3] focus:outline-none'
         />
-        <select
-          value={pageSize}
-          onChange={(e) => onPageSize?.(Number(e.target.value))}
-          className='rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:ring-2 focus:ring-[#2196f3] focus:outline-none'
-        >
-          {[10, 20, 50].map((n) => (
-            <option key={n} value={n}>
-              {n}/sayfa
-            </option>
-          ))}
-        </select>
       </div>
       <div className='flex items-center gap-2'>
         {selectedCount > 0 && (

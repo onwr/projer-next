@@ -10,7 +10,6 @@ import {
   Settings,
   Eye,
   Download,
-  CreditCard,
   Calendar,
   Clock,
   CheckCircle,
@@ -406,22 +405,6 @@ const UserPanelPage = () => {
                       >
                         <div className='flex items-center justify-between'>
                           <div>
-                            <p className='text-sm font-medium text-gray-600'>Toplam Harcama</p>
-                            <p className='text-2xl font-bold text-gray-900'>₺{userStats.totalSpent?.toFixed(2) || '0.00'}</p>
-                          </div>
-                          <div className='rounded-full bg-green-100 p-3'>
-                            <CreditCard size={24} className='text-green-600' />
-                          </div>
-                        </div>
-                      </motion.div>
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
-                        className='rounded-2xl bg-white p-6 shadow-lg'
-                      >
-                        <div className='flex items-center justify-between'>
-                          <div>
                             <p className='text-sm font-medium text-gray-600'>Favori Ürünler</p>
                             <p className='text-2xl font-bold text-gray-900'>
                               {userStats.favoriteProductsCount || 0}
@@ -433,57 +416,7 @@ const UserPanelPage = () => {
                           </div>
                         </div>
                       </motion.div>
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4, duration: 0.5 }}
-                        className='rounded-2xl bg-white p-6 shadow-lg'
-                      >
-                        <div className='flex items-center justify-between'>
-                          <div>
-                            <p className='text-sm font-medium text-gray-600'>İndirilen Ürünler</p>
-                            <p className='text-2xl font-bold text-gray-900'>
-                              {userStats.downloadedProducts || 0}
-                            </p>
-                            <p className='text-xs text-purple-600'>Satın alınan ürünler</p>
-                          </div>
-                          <div className='rounded-full bg-purple-100 p-3'>
-                            <Download size={24} className='text-purple-600' />
-                          </div>
-                        </div>
-                      </motion.div>
                     </div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5, duration: 0.5 }}
-                      className='rounded-2xl bg-white p-6 shadow-lg'
-                    >
-                      <h3 className='mb-4 text-lg font-semibold text-gray-900'>Hesap Bilgileri</h3>
-                      <div className='grid gap-4 md:grid-cols-2'>
-                        <div className='flex items-center space-x-3'>
-                          <div className='rounded-full bg-blue-100 p-2'>
-                            <Calendar size={20} className='text-blue-600' />
-                          </div>
-                          <div>
-                            <p className='text-sm font-medium text-gray-600'>Hesap Yaşı</p>
-                            <p className='text-lg font-semibold text-gray-900'>
-                              {userStats.accountAge || 'Bilinmiyor'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className='flex items-center space-x-3'>
-                          <div className='rounded-full bg-green-100 p-2'>
-                            <Clock size={20} className='text-green-600' />
-                          </div>
-                          <div>
-                            <p className='text-sm font-medium text-gray-600'>Kayıt Tarihi</p>
-                            <p className='text-lg font-semibold text-gray-900'>{userStats.lastLogin || 'Bilinmiyor'}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
 
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}

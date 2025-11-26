@@ -11,7 +11,6 @@ const AdminOrdersPage = () => {
   const [pageSize] = useState(20);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [storeFilter, setStoreFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -49,7 +48,7 @@ const AdminOrdersPage = () => {
     loadOrders();
     loadStats();
     loadCategories();
-  }, [page, search, statusFilter, storeFilter, categoryFilter, dateFrom, dateTo, amountMin, amountMax, sortBy, sortOrder]);
+  }, [page, search, storeFilter, categoryFilter, dateFrom, dateTo, amountMin, amountMax, sortBy, sortOrder]);
 
   useEffect(() => {
     // Load stores from orders
@@ -89,7 +88,6 @@ const AdminOrdersPage = () => {
         sortOrder,
       });
       if (search) params.set('search', search);
-      if (statusFilter) params.set('status', statusFilter);
       if (storeFilter) params.set('storeId', storeFilter);
       if (categoryFilter) params.set('category', categoryFilter);
       if (dateFrom) params.set('dateFrom', dateFrom);
@@ -114,7 +112,6 @@ const AdminOrdersPage = () => {
     try {
       // Load statistics with same filters
       const params = new URLSearchParams();
-      if (statusFilter) params.set('status', statusFilter);
       if (storeFilter) params.set('storeId', storeFilter);
       if (categoryFilter) params.set('category', categoryFilter);
       if (dateFrom) params.set('dateFrom', dateFrom);
@@ -200,7 +197,7 @@ const AdminOrdersPage = () => {
   const handleExport = () => {
     const csvHeaders = [
       'Sipariş ID', 'Müşteri', 'Email', 'Telefon', 'Ürün', 'Kategori', 'Alt Kategori',
-      'Mağaza', 'Tutar', 'Durum', 'Oluşturulma Tarihi', 'Güncelleme Tarihi'
+      'Mağaza', 'Tutar', 'Oluşturulma Tarihi', 'Güncelleme Tarihi'
     ];
     
     const csvRows = orders.map(o => [
@@ -213,7 +210,6 @@ const AdminOrdersPage = () => {
       o.product.subcategory || '',
       o.product.author?.storeName || `${o.product.author?.firstName} ${o.product.author?.lastName}`,
       o.amount || 0,
-      o.status === 'COMPLETED' ? 'Tamamlandı' : o.status === 'CANCELLED' ? 'İptal Edildi' : 'Bekliyor',
       new Date(o.createdAt).toLocaleString('tr-TR'),
       new Date(o.updatedAt).toLocaleString('tr-TR'),
     ]);
@@ -380,19 +376,6 @@ const AdminOrdersPage = () => {
         <div className='rounded-2xl bg-white p-6 shadow-lg'>
           <div className='flex items-center justify-between'>
             <div>
-              <p className='text-sm font-medium text-gray-600'>Tamamlanan</p>
-              <p className='mt-2 text-3xl font-bold text-gray-900'>{stats.completed}</p>
-              <p className='mt-1 text-xs text-gray-500'>₺{stats.totalRevenue.toFixed(2)} gelir</p>
-            </div>
-            <div className='rounded-full bg-emerald-100 p-3'>
-              <CheckCircle size={24} className='text-emerald-600' />
-            </div>
-          </div>
-        </div>
-        
-        <div className='rounded-2xl bg-white p-6 shadow-lg'>
-          <div className='flex items-center justify-between'>
-            <div>
               <p className='text-sm font-medium text-gray-600'>Bu Ay</p>
               <p className='mt-2 text-3xl font-bold text-gray-900'>{stats.monthlyCount}</p>
               <p className='mt-1 text-xs text-gray-500'>₺{stats.monthlyRevenue.toFixed(2)} gelir</p>
@@ -410,10 +393,6 @@ const AdminOrdersPage = () => {
           <p className='text-xs font-medium text-gray-600'>Bugün</p>
           <p className='mt-1 text-xl font-bold text-gray-900'>{stats.todayCount} sipariş</p>
           <p className='text-xs text-gray-500'>₺{stats.todayRevenue.toFixed(2)} gelir</p>
-        </div>
-        <div className='rounded-2xl bg-white p-4 shadow-lg'>
-          <p className='text-xs font-medium text-gray-600'>Ortalama Sipariş</p>
-          <p className='mt-1 text-xl font-bold text-gray-900'>₺{stats.averageOrder.toFixed(2)}</p>
         </div>
       </div>
 
@@ -438,17 +417,6 @@ const AdminOrdersPage = () => {
             />
           </div>
           <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className='rounded-xl border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200'
-          >
-            <option value=''>Tüm Durumlar</option>
-            <option value='COMPLETED'>Tamamlandı</option>
-          </select>
-          <select
             value={`${sortBy}-${sortOrder}`}
             onChange={(e) => {
               const [field, order] = e.target.value.split('-');
@@ -461,7 +429,6 @@ const AdminOrdersPage = () => {
             <option value='createdAt-asc'>Eski → Yeni</option>
             <option value='amount-desc'>Tutar (Yüksek → Düşük)</option>
             <option value='amount-asc'>Tutar (Düşük → Yüksek)</option>
-            <option value='status-asc'>Durum (A → Z)</option>
           </select>
         </div>
         <div className='mt-4 grid gap-4 md:grid-cols-6'>
@@ -574,7 +541,6 @@ const AdminOrdersPage = () => {
                     <th className='px-6 py-3 text-left text-sm font-semibold text-gray-700'>Müşteri</th>
                     <th className='px-6 py-3 text-left text-sm font-semibold text-gray-700'>Mağaza</th>
                     <th className='px-6 py-3 text-left text-sm font-semibold text-gray-700'>Tutar</th>
-                    <th className='px-6 py-3 text-left text-sm font-semibold text-gray-700'>Durum</th>
                     <th className='px-6 py-3 text-left text-sm font-semibold text-gray-700'>Tarih</th>
                     <th className='px-6 py-3 text-right text-sm font-semibold text-gray-700'>İşlemler</th>
                   </tr>
@@ -684,16 +650,6 @@ const AdminOrdersPage = () => {
                             `₺${order.amount.toFixed(2)}`
                           )}
                         </p>
-                      </td>
-                      <td className='px-6 py-4'>
-                        <span
-                          className={`inline-flex items-center space-x-1 rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {getStatusIcon(order.status)}
-                          <span>{getStatusLabel(order.status)}</span>
-                        </span>
                       </td>
                       <td className='px-6 py-4 text-sm text-gray-600'>
                         <div>
